@@ -17,3 +17,4 @@ head_sampling_rate = 1
 
 [vars]
 ADMIN_PASSWORD = "admin"
+JWT_SECRET = "secret"

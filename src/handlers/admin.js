@@ -1,35 +1,45 @@
 import { ConfigService } from '../services/config.js';
 import { KVService } from '../services/kv.js';
 import { renderAdminPage } from '../views/admin.html.js';
+import { renderLoginPage } from '../views/login.html.js';
 import { jsonResponse, generateToken } from '../utils.js';
 import { TelegramService } from '../services/telegram.js';
+import { verifyJwt, createJwt, getAuthCookie, createAuthCookie } from '../services/auth.js';
 
+// 登录处理器
+async function handleLogin(request) {
+    const { password } = await request.json();
+    const adminPassword = ConfigService.get('adminPassword');
+    const jwtSecret = ConfigService.getEnv().JWT_SECRET;
 
-async function isAuthenticated(request) {
-  const password = ConfigService.get('adminPassword');
-  // 如果未在 KV 中设置密码，则认为认证通过（用于首次设置）
-  if (!password) {
-      const config = await KVService.getGlobalConfig();
-      if (!config || !config.adminPassword) return true;
-  }
-  
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
-  }
-  return authHeader.substring(7) === password;
-}
-
-async function handleApiRequest(request) {
-    if (!await isAuthenticated(request)) {
-        return jsonResponse({ error: 'Unauthorized' }, 401);
+    if (!adminPassword || !jwtSecret) {
+        return jsonResponse({ error: 'Admin password or JWT secret not set on server.' }, 500);
     }
 
-    const url = new URL(request.url);
+    if (password === adminPassword) {
+        const token = await createJwt(jwtSecret);
+        const cookie = createAuthCookie(token, 8 * 60 * 60); // 8 hours
+        return jsonResponse({ success: true }, 200, { 'Set-Cookie': cookie });
+    } else {
+        return jsonResponse({ error: 'Invalid password' }, 401);
+    }
+}
+
+// 登出处理器
+function handleLogout() {
+    const cookie = createAuthCookie('logged_out', 0); // Expire immediately
+    return jsonResponse({ success: true }, 200, { 'Set-Cookie': cookie });
+}
+
+// API请求处理器 (现在它假设请求已通过认证)
+async function handleApiRequest(request, url) {
     const method = request.method;
     const pathParts = url.pathname.split('/').filter(Boolean); // ['admin', 'api', 'groups', 'token123']
 
     // 路由到不同的 API 处理器
+    if (pathParts[2] === 'logout' && method === 'POST') {
+        return handleLogout();
+    }
     if (pathParts[2] === 'config' && method === 'GET') {
         const config = await KVService.getGlobalConfig() || ConfigService.get();
         return jsonResponse(config);
@@ -72,24 +82,37 @@ async function handleApiRequest(request) {
         return jsonResponse({ token: generateToken() });
     }
 
-    return jsonResponse({ error: 'Not Found' }, 404);
+    return jsonResponse({ error: 'API endpoint not found' }, 404);
 }
 
 
+// 主处理器
 export async function handleAdminRequest(request) {
-  const url = new URL(request.url);
-  
-  // 1. 如果是API请求, 交给API处理器 (它内部会进行认证)
-  if (url.pathname.startsWith('/admin/api/')) {
-    return handleApiRequest(request);
-  }
+    const url = new URL(request.url);
+    const jwtSecret = ConfigService.getEnv().JWT_SECRET;
+    if (!jwtSecret) {
+        return new Response('JWT_SECRET is not configured.', { status: 500 });
+    }
 
-  // 2. 如果是获取页面的GET请求, 直接渲染页面外壳
-  if (request.method === 'GET') {
-    // 不再预加载数据，前端JS将负责获取
-    const html = renderAdminPage();
-    return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-  }
+    // 1. 检查是否是登录API的请求，如果是，则直接处理
+    if (url.pathname === '/admin/api/login' && request.method === 'POST') {
+        return handleLogin(request);
+    }
 
-  return new Response('Method Not Allowed', { status: 405 });
+    // 2. 验证所有其他 /admin 请求的JWT
+    const token = getAuthCookie(request);
+    const isValid = await verifyJwt(jwtSecret, token);
+
+    if (isValid) {
+        // 认证通过
+        if (url.pathname.startsWith('/admin/api/')) {
+            return handleApiRequest(request, url); // 处理API请求
+        }
+        return new Response(renderAdminPage(), { headers: { 'Content-Type': 'text/html; charset=utf-8' } }); // 提供主应用
+    } else {
+        // 认证失败
+        // 清除可能存在的无效cookie
+        const headers = { 'Content-Type': 'text/html; charset=utf-8', 'Set-Cookie': createAuthCookie('invalid', 0) };
+        return new Response(renderLoginPage(), { headers, status: 401 });
+    }
 }

@@ -24,10 +24,10 @@ export function isBot(userAgent) {
   return /bot|spider|crawl|slurp|ia_archiver/i.test(userAgent);
 }
 
-export function jsonResponse(data, status = 200) {
+export function jsonResponse(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data, null, 2), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...headers },
   });
 }
 

@@ -45,6 +45,13 @@ export class ConfigService {
   }
 
   static getKV() {
+    if (!_env || !_env.KV) {
+      throw new Error('KV namespace is not bound or ConfigService not initialized.');
+    }
     return _env.KV;
+  }
+
+  static getEnv() {
+    return _env;
   }
 }
