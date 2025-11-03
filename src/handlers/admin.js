@@ -2,7 +2,7 @@ import { ConfigService } from '../services/config.js';
 import { KVService } from '../services/kv.js';
 import { renderAdminPage } from '../views/admin.html.js';
 import { renderLoginPage } from '../views/login.html.js';
-import { jsonResponse, generateToken } from '../utils.js';
+import { createResponse, generateToken } from '../utils.js';
 import { TelegramService } from '../services/telegram.js';
 import { verifyJwt, createJwt, getAuthCookie, createAuthCookie } from '../services/auth.js';
 
@@ -13,22 +13,22 @@ async function handleLogin(request) {
     const jwtSecret = ConfigService.getEnv().JWT_SECRET;
 
     if (!adminPassword || !jwtSecret) {
-        return jsonResponse({ error: 'Admin password or JWT secret not set on server.' }, 500);
+        return createResponse({ error: 'Admin password or JWT secret not set on server.' }, 500);
     }
 
     if (password === adminPassword) {
         const token = await createJwt(jwtSecret);
         const cookie = createAuthCookie(token, 8 * 60 * 60); // 8 hours
-        return jsonResponse({ success: true }, 200, { 'Set-Cookie': cookie });
+        return createResponse({ success: true }, 200, { 'Set-Cookie': cookie });
     } else {
-        return jsonResponse({ error: 'Invalid password' }, 401);
+        return createResponse({ error: 'Invalid password' }, 401);
     }
 }
 
 // 登出处理器
 function handleLogout() {
     const cookie = createAuthCookie('logged_out', 0); // Expire immediately
-    return jsonResponse({ success: true }, 200, { 'Set-Cookie': cookie });
+    return createResponse({ success: true }, 200, { 'Set-Cookie': cookie });
 }
 
 // API请求处理器 (现在它假设请求已通过认证)
@@ -42,7 +42,7 @@ async function handleApiRequest(request, url) {
     }
     if (pathParts[2] === 'config' && method === 'GET') {
         const config = await KVService.getGlobalConfig() || ConfigService.get();
-        return jsonResponse(config);
+        return createResponse(config);
     }
     if (pathParts[2] === 'config' && method === 'PUT') {
         const newConfig = await request.json();
@@ -51,18 +51,18 @@ async function handleApiRequest(request, url) {
         const mergedConfig = { ...oldConfig, ...newConfig };
         await KVService.saveGlobalConfig(mergedConfig);
         await TelegramService.sendAdminLog('更新全局配置');
-        return jsonResponse({ success: true });
+        return createResponse({ success: true });
     }
     if (pathParts[2] === 'groups' && method === 'GET') {
         const groups = await KVService.getAllGroups();
-        return jsonResponse(groups);
+        return createResponse(groups);
     }
     if (pathParts[2] === 'groups' && method === 'POST') {
         const newGroup = await request.json();
         if (!newGroup.token) newGroup.token = generateToken();
         await KVService.saveGroup(newGroup);
         await TelegramService.sendAdminLog('创建订阅组', `名称: ${newGroup.name}`);
-        return jsonResponse(newGroup);
+        return createResponse(newGroup);
     }
     if (pathParts[2] === 'groups' && pathParts[3] && method === 'PUT') {
         const token = pathParts[3];
@@ -70,19 +70,19 @@ async function handleApiRequest(request, url) {
         groupData.token = token;
         await KVService.saveGroup(groupData);
         await TelegramService.sendAdminLog('更新订阅组', `名称: ${groupData.name}`);
-        return jsonResponse(groupData);
+        return createResponse(groupData);
     }
     if (pathParts[2] === 'groups' && pathParts[3] && method === 'DELETE') {
         const token = pathParts[3];
         await KVService.deleteGroup(token);
         await TelegramService.sendAdminLog('删除订阅组', `Token: ${token}`);
-        return jsonResponse({ success: true });
+        return createResponse({ success: true });
     }
     if (pathParts[2] === 'utils' && pathParts[3] === 'gentoken' && method === 'GET') {
-        return jsonResponse({ token: generateToken() });
+        return createResponse({ token: generateToken() });
     }
 
-    return jsonResponse({ error: 'API endpoint not found' }, 404);
+    return createResponse({ error: 'API endpoint not found' }, 404);
 }
 
 
@@ -91,7 +91,7 @@ export async function handleAdminRequest(request) {
     const url = new URL(request.url);
     const jwtSecret = ConfigService.getEnv().JWT_SECRET;
     if (!jwtSecret) {
-        return new Response('JWT_SECRET is not configured.', { status: 500 });
+        return createResponse({ error: 'JWT_SECRET is not configured.'}, 500);
     }
 
     // 1. 检查是否是登录API的请求，如果是，则直接处理
@@ -108,11 +108,11 @@ export async function handleAdminRequest(request) {
         if (url.pathname.startsWith('/admin/api/')) {
             return handleApiRequest(request, url); // 处理API请求
         }
-        return new Response(renderAdminPage(), { headers: { 'Content-Type': 'text/html; charset=utf-8' } }); // 提供主应用
+        return createResponse(renderAdminPage(), 200, {}, 'text/html; charset=utf-8'); // 提供主应用
     } else {
         // 认证失败
         // 清除可能存在的无效cookie
         const headers = { 'Content-Type': 'text/html; charset=utf-8', 'Set-Cookie': createAuthCookie('invalid', 0) };
-        return new Response(renderLoginPage(), { headers, status: 401 });
+        return createResponse(renderLoginPage(), 401, headers, 'text/html; charset=utf-8');
     }
 }
