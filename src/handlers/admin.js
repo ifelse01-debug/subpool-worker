@@ -16,7 +16,7 @@ async function handleLogin(request, logger) {
 		return response.json({ error: 'Admin password or JWT secret not set on server.' }, 500);
 	}
 
-	if (password === adminPassword) {
+	if (constantTimeCompare(password, adminPassword)) {
 		const token = await createJwt(jwtSecret, {}, logger);
 		const cookie = createAuthCookie(token, 8 * 60 * 60); // 8 hours
 		logger.info('Admin logged in', {}, { notify: true });
@@ -123,4 +123,21 @@ export async function handleAdminRequest(request, logger) {
 		const headers = { 'Content-Type': 'text/html; charset=utf-8', 'Set-Cookie': createAuthCookie('invalid', 0) };
 		return response.normal(renderLoginPage(), 401, headers);
 	}
+}
+
+/**
+ * 常量时间比较函数，用于安全地比较字符串
+ * @param {string} a - 第一个字符串
+ * @param {string} b - 第二个字符串
+ * @returns {boolean} 如果两个字符串相等返回true，否则返回false
+ */
+function constantTimeCompare(a, b) {
+  if (a.length !== b.length) {
+    return false;
+  }
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
 }
