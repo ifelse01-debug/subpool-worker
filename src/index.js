@@ -8,7 +8,6 @@ export default {
       return await handleRequest(request, env, ctx, logger);
     } catch (err) {
       logger.error(err, { customMessage: 'Unhandled exception in fetch handler' });
-      // 可以在这里添加 Telegram 错误通知
       return new Response('Internal Server Error', { status: 500 });
     }
   }

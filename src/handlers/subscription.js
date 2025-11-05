@@ -27,7 +27,11 @@ export async function handleSubscriptionRequest(request, token, logger) {
 
   logger.info('Subscription accessed', { token, groupName: group.name });
   
-  const { content, headers } = await SubconverterService.generateSubscription(group, request, token);
-
-  return new Response(content, { headers });
+  try {
+    const { content, headers } = await SubconverterService.generateSubscription(group, request, token);
+    return new Response(content, { headers });
+  } catch (err) {
+    logger.error(err, { customMessage: 'Failed to generate subscription', token });
+    return response.text('Upstream subscription generation failed. Please check the logs.', 502);
+  }
 }

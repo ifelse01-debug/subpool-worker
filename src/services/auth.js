@@ -98,7 +98,7 @@ export async function createJwt(secret, payload = {}, logger) {
     
     return `${partialToken}.${signature}`;
   } catch (err) {
-    logger.error('Failed to create JWT', { error: err.message });
+    logger.error(err, { customMessage: 'Failed to create JWT' });
     throw new Error('Failed to create JWT');
   }
 }
@@ -188,7 +188,7 @@ export function getAuthCookie(request, logger) {
     
     return authCookie ? authCookie.split('=')[1].trim() : null;
   } catch (err) {
-    logger.error('Error parsing cookies:', err);
+    logger.error(err, { customMessage: 'Error parsing cookies' });
     return null;
   }
 }
@@ -248,7 +248,7 @@ export async function refreshJwt(secret, token, logger) {
     const { iat, exp, ...originalPayload } = payload;
     return await createJwt(secret, originalPayload, logger);
   } catch (err) {
-    logger.error('JWT refresh error:', error);
+    logger.error(err, { customMessage: 'JWT refresh error' });
     return null;
   }
 }
