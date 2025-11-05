@@ -134,7 +134,7 @@ export default class LoggerService {
   async info(message, data, options) { this._log('info', message, data, options); }
   async warn(message, data, options) { this._log('warn', message, data, options); }
 
-  async error(message, data) {
+  async error(message, data, options) {
     // 如果 message 是一个 Error 对象，则将其转换为可记录的对象
     if (message instanceof Error) {
         const errorData = {

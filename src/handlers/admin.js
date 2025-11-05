@@ -3,8 +3,7 @@ import { KVService } from '../services/kv.js';
 import { renderAdminPage } from '../views/admin.html.js';
 import { renderLoginPage } from '../views/login.html.js';
 import { response, generateToken } from '../utils.js';
-// import { TelegramService } from '../services/telegram.js';
-import { verifyJwt, createJwt, getAuthCookie, createAuthCookie } from '../services/auth.js';
+import { verifyJwt, createJwt, refreshJwt, getAuthCookie, createAuthCookie } from '../services/auth.js';
 
 // 登录处理器
 async function handleLogin(request, logger) {
@@ -18,7 +17,7 @@ async function handleLogin(request, logger) {
 	}
 
 	if (password === adminPassword) {
-		const token = await createJwt(jwtSecret);
+		const token = await createJwt(jwtSecret, {}, logger);
 		const cookie = createAuthCookie(token, 8 * 60 * 60); // 8 hours
 		logger.info('Admin logged in', {}, { notify: true });
 		return response.json({ success: true }, 200, { 'Set-Cookie': cookie });
@@ -104,17 +103,20 @@ export async function handleAdminRequest(request, logger) {
 	}
 
 	// 2. 验证所有其他 /admin 请求的JWT
-	const token = getAuthCookie(request);
-	const isValid = await verifyJwt(jwtSecret, token);
+	const token = getAuthCookie(request, logger);
+	const isValid = await verifyJwt(jwtSecret, token, logger);
 
 	if (isValid) {
 		// 认证通过
+		// 刷新JWT
+		const newToken = await refreshJwt(jwtSecret, token, logger);
+		const cookie = createAuthCookie(newToken, 8 * 60 * 60); // 8 hours
 		if (url.pathname.startsWith('/admin/api/')) {
 			// 处理API请求
 			return handleApiRequest(request, url, logger);
 		}
 		// 提供主应用
-		return response.normal(renderAdminPage());
+		return response.normal(renderAdminPage(), 200, { 'Set-Cookie': cookie });
 	} else {
 		// 认证失败
 		// 清除可能存在的无效cookie
