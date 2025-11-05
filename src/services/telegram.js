@@ -25,9 +25,8 @@ export class TelegramService {
 
     const sendTelegram = async () => {
       try {
-        console.log('Sending Telegram message:', message);
+        console.log('Sending Telegram message.');
         const response = await fetch(url, options);
-        console.log('Telegram response status:', response.status);
         if (!response.ok) {
           throw new Error(`Telegram API returned ${response.status}: ${await response.text()}`);
         }
