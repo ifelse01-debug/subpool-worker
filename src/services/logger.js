@@ -126,7 +126,7 @@ export default class LoggerService {
         details
     ].filter(Boolean).join('\n');
 
-    await TelegramService.sendMessage(msg, this.ctx);
+    TelegramService.sendMessage(msg, this.ctx);
   }
 
   // Public-facing log methods
