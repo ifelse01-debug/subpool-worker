@@ -98,32 +98,32 @@ export default class LoggerService {
   sendNotification(logObject, data, request) {
     const { level, message, context } = logObject;
     const emoji = {
-        INFO: 'ℹ️',
-        WARN: '⚠️',
-        ERROR: '❌',
-        FATAL: '🚨'
+      INFO: 'ℹ️',
+      WARN: '⚠️',
+      ERROR: '❌',
+      FATAL: '🚨'
     }[level] || '⚙️';
 
     let details = '';
     // 如果有错误堆栈，优先显示
     if (data.error && data.error.stack) {
-        details = `<tg-spoiler>${data.error.stack}</tg-spoiler>`;
+      details = `<tg-spoiler>${data.error.stack}</tg-spoiler>`;
     } else {
-        // 否则显示格式化的数据
-        const dataString = JSON.stringify(data, null, 2);
-        if (dataString !== '{}') {
-            details = `<tg-spoiler>${dataString}</tg-spoiler>`;
-        }
+      // 否则显示格式化的数据
+      const dataString = JSON.stringify(data, null, 2);
+      if (dataString !== '{}') {
+        details = `<tg-spoiler>${dataString}</tg-spoiler>`;
+      }
     }
     
     const msg = [
-        `<b>${emoji} [${level}] ${message}</b>`,
-        `Timestamp: ${logObject.timestamp}`,
-        // `URL: ${context.url}`,
-        `IP: ${request.headers.get('cf-connecting-ip')|| 'N/A'}`,
-        `Country: ${context.country} (${context.colo})`,
-        `Region: ${context.region}`,
-        details
+      `<b>${emoji} [${level}] ${message}</b>`,
+      `Timestamp: ${logObject.timestamp}`,
+      // `URL: ${context.url}`,
+      `IP: ${request.headers.get('cf-connecting-ip')|| 'N/A'}`,
+      `Country: ${context.country} (${context.colo})`,
+      `Region: ${context.region}`,
+      details
     ].filter(Boolean).join('\n');
 
     TelegramService.sendMessage(msg, this.ctx);
@@ -137,17 +137,17 @@ export default class LoggerService {
   error(message, data, options) {
     // 如果 message 是一个 Error 对象，则将其转换为可记录的对象
     if (message instanceof Error) {
-        const errorData = {
-            error: {
-                message: message.message,
-                stack: message.stack,
-                name: message.name,
-            },
-            ...data
-        };
-        this._log('error', message.message, errorData);
+      const errorData = {
+        error: {
+          message: message.message,
+          stack: message.stack,
+          name: message.name,
+        },
+        ...data
+      };
+      this._log('error', message.message, errorData);
     } else {
-        this._log('error', message, data);
+      this._log('error', message, data);
     }
   }
   
