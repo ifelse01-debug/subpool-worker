@@ -34,8 +34,29 @@ export function applyFilter(content, filterConfig) {
     .join('\n');
 }
 
+// 阻止的 UA 列表
+const BOT_UA_PATTERNS = new RegExp([
+  'bot',        // Bot 通杀
+  'spider',
+  'crawler',
+  'slurp',      // Yahoo
+  'ia_archiver',
+  'sogou',
+  'facebook',
+  'pinterest',
+  'ChatGPT-User',
+  'QQ',          // QQ
+  'MicroMessenger' // 微信
+].join('|'), 'i');
+
+/**
+ * 判断是否为机器人访问
+ * @param {string} userAgent - User-Agent字符串
+ * @returns {boolean} 是否为机器人
+ */
 export function isBot(userAgent) {
-  return /bot|spider|crawl|slurp|ia_archiver/i.test(userAgent);
+  if (!userAgent) return false;
+  return BOT_UA_PATTERNS.test(userAgent);
 }
 
 
