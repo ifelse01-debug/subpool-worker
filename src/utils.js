@@ -70,8 +70,7 @@ export const response = {
    * @returns {Response} 返回 Response 对象
    */
   normal(body, status = 200, headers = {}, contentType = 'text/html; charset=utf-8') {
-    const headersObj = new Headers(headers || {});
-    headersObj.set('Content-Type', contentType);
+    const headersObj = this.buildHeaders(headers, contentType);
     return new Response(body, { status, headers: headersObj });
   },
 
@@ -84,12 +83,43 @@ export const response = {
    * @returns {Response} 返回 JSON 格式的 Response 对象
    */
   json(body, status = 200, headers = {}, contentType) {
-    const headersObj = new Headers(headers || {});
-    headersObj.set('Content-Type', 'application/json');
+    const headersObj = this.buildHeaders(headers, 'application/json');
 
     // 序列化 body 为 JSON 字符串（处理 undefined/特殊值）
     const jsonBody = body !== undefined ? JSON.stringify(body) : 'null';
     return new Response(jsonBody, { status, headers: headersObj });
+  },
+
+  buildHeaders(headers = {}, contentType) {
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "frame-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'"
+    ];
+    const headersObj = new Headers({
+      ...headers,
+      'Content-Type': contentType,
+      'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Robots-Tag': 'noindex, nofollow, noarchive',
+      'Referrer-Policy': 'no-referrer',
+      'Permissions-Policy': 'fullscreen=(self), camera=(), microphone=(), payment=(self), geolocation=(self)',
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Resource-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'upgrade-insecure-requests': '1',
+      'Content-Security-Policy': csp.join('; '),
+    });
+    return headersObj;
   }
 }
 
