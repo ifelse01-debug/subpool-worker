@@ -67,7 +67,7 @@ async function handleApiRequest(request, url, logger) {
   // 创建新订阅组
   router.post('/admin/api/groups', async () => {
     const newGroup = await request.json();
-    if (!newGroup || typeof newGroup.name !== 'string' || !Array.isArray(newGroup.subscriptions)) {
+    if (!newGroup || typeof newGroup.name !== 'string' || !newGroup.name.trim()) {
       logger.warn('Invalid group data', { GroupData: newGroup });
       return response.json({ error: 'Invalid group data' }, 400);
     }
