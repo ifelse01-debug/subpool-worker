@@ -14,10 +14,10 @@ export class SubconverterService {
     const url = new URL(request.url);
     const userAgent = (request.headers.get('User-Agent') || '').toLowerCase();
 
-    // 1. 确定最终输出格式
+    // 确定最终输出格式
     const outputFormat = this._getOutputFormat(url, userAgent);
     
-    // 2. 分离内联节点和订阅链接
+    // 分离内联节点和订阅链接
     const allSources = (group.nodes || '').split('\n').filter(Boolean);
     const inlineNodes = [];
     const subscriptionUrls = [];
@@ -25,22 +25,20 @@ export class SubconverterService {
       source.toLowerCase().startsWith('http') ? subscriptionUrls.push(source) : inlineNodes.push(source);
     });
 
-    // 3. 并发获取远程订阅内容
+    // 并发获取远程订阅内容
     const { fetchedNodes, conversionUrls } = await this._fetchRemoteSubscriptions(subscriptionUrls, request, group.filter);
     
-    // 4. 合并、过滤和去重所有原生节点
+    // 合并、过滤和去重所有原生节点
     let combinedNodes = [...inlineNodes, ...fetchedNodes];
     let content = applyFilter(combinedNodes.join('\n'), group.filter);
     content = [...new Set(content.split('\n'))].join('\n');
     
-    // 5. 处理回调或直接返回 base64
     // 如果客户端请求的就是 base64，或者 sub-converter 正在回访我们，直接返回结果
     if (outputFormat === 'base64') {
       const headers = this._createSubscriptionHeaders();
       return { content: safeBtoa(content), headers };
     }
 
-    // 6. 准备调用 sub-converter
     // 创建一个指向自身的回调 URL，用于向 sub-converter 提供已处理好的节点
     let finalConversionUrls = [...conversionUrls];
     if (content.trim()) {
@@ -76,8 +74,6 @@ export class SubconverterService {
       return { content: safeBtoa(content), headers };
     }
   }
-  
-  // --- 私有辅助方法 (移植自原脚本) ---
 
   static async _fetchRemoteSubscriptions(urls, request, filterConfig) {
     if (!urls || urls.length === 0) {
@@ -138,9 +134,11 @@ export class SubconverterService {
     };
     
     // 优先匹配 URL 参数
+    const params = new URLSearchParams(url.search);
     for (const [param, format] of Object.entries(paramMap)) {
-      if (url.search.includes(param)) return format;
+      if (params.has(param)) return format;
     }
+
     // 再匹配 User-Agent
     for (const [ua, format] of Object.entries(formatMap)) {
       if (userAgent.includes(ua)) return format;
