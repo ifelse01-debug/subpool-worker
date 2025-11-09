@@ -174,7 +174,11 @@ export class SubconverterService {
     const config = ConfigService.get();
     const { totalTB, expireDate } = config.subscriptionInfo;
     const total = totalTB * 1099511627776;
-    const expire = Math.floor(new Date(expireDate).getTime() / 1000);
+    const expire = (expireDate === '0') 
+      ? 0 
+      : (!isNaN(Date.parse(expireDate)) 
+        ? Math.floor(new Date(expireDate).getTime() / 1000) 
+        : -1);
     
     const headers = {
       'Content-Type': 'text/plain; charset=utf-8',
