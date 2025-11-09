@@ -54,6 +54,10 @@ export class SubconverterService {
 
     const subconverterConfig = ConfigService.get('subconverter');
     const subconverterUrl = this._generateSubConverterUrl(outputFormat, finalConversionUrls, subconverterConfig);
+    if (!subconverterUrl || subconverterUrl.trim() === '') {
+      const headers = this._createSubscriptionHeaders();
+      return { content: safeBtoa(''), headers };
+    }
     
     try {
       const response = await fetch(subconverterUrl);
