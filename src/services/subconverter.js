@@ -26,7 +26,7 @@ export class SubconverterService {
     });
 
     // 并发获取远程订阅内容
-    const { fetchedNodes, conversionUrls } = await this._fetchRemoteSubscriptions(subscriptionUrls, request, group.filter);
+    const { fetchedNodes, conversionUrls } = await this._fetchRemoteSubscriptions(subscriptionUrls, request, group.filter, logger);
     
     // 合并、过滤和去重所有原生节点
     let combinedNodes = [...inlineNodes, ...fetchedNodes];
@@ -79,26 +79,48 @@ export class SubconverterService {
     }
   }
 
-  static async _fetchRemoteSubscriptions(urls, request, filterConfig) {
+  static async _fetchRemoteSubscriptions(urls, request, filterConfig, logger) {
     if (!urls || urls.length === 0) {
       return { fetchedNodes: [], conversionUrls: [] };
     }
-
+    
+    const requestHostname = new URL(request.url).hostname.toLowerCase();
     const fetchedNodes = [];
     const conversionUrls = [];
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000); // 4秒超时
 
-    const promises = urls.map(url =>
-      fetch(url, {
-        method: 'GET',
-        headers: { 'User-Agent': `${request.headers.get('User-Agent') || 'Mozilla/5.0'} v2rayN/7.15.7 (SubPool-Worker/1.0.0; +https://github.com/illusionlie/subpool-worker)` },
-        signal: controller.signal,
-      }).then(async resp => {
-        if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`);
-        return { url, content: await resp.text() };
-      }).catch(error => Promise.reject({ url, error }))
-    );
+    const promises = urls.map(async (url) => {
+      try {
+        const urlStr = url.toString();
+        const targetHostname = new URL(urlStr).hostname.toLowerCase();
+        
+        // 检查递归，如果是，直接抛出错误
+        if (targetHostname === requestHostname) {
+          throw new Error('Recursive loop detected');
+        }
+
+        // 使用 await 等待 fetch 完成
+        const resp = await fetch(urlStr, {
+          method: 'GET',
+          headers: { 'User-Agent': `${request.headers.get('User-Agent') || 'Mozilla/5.0'} v2rayN/7.15.7 (SubPool-Worker/1.0.0; +https://github.com/illusionlie/subpool-worker  )` },
+          signal: controller.signal,
+        });
+
+        if (!resp.ok) {
+          throw new Error(`Fetch failed: ${resp.status}`);
+        }
+
+        // 使用 await 等待读取文本内容
+        const content = await resp.text();
+        return { url: urlStr, content };
+
+      } catch (error) {
+        // 抛出一个包含URL和错误信息的对象，以便后续处理
+        // Promise.allSettled 会捕获这个 throw，并将其作为 rejected 的 reason
+        throw { url: url.toString(), error };
+      }
+    });
 
     const results = await Promise.allSettled(promises);
     clearTimeout(timeoutId);
@@ -115,11 +137,11 @@ export class SubconverterService {
         } else if (content.includes('://')) {
           fetchedNodes.push(applyFilter(content, filterConfig));
         } else {
-          console.log(`Unrecognized content from ${url}`);
+          logger.warn(`Unrecognized content from ${url}`);
         }
       } else {
         const { url, error } = result.reason;
-        console.error(`Failed to fetch ${url}:`, error.message || error);
+        logger.error(error, `Failed to fetch ${url}`);
       }
     }
 
