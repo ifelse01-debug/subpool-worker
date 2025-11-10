@@ -172,7 +172,7 @@ export function isValidBase64(str) {
   if (cleanStr.length === 0) return false;
   if (cleanStr.length % 4 !== 0) return false;
 
-  return /^[A-Za-z0-9+/]+={0,2}$/.test(cleanStr);
+  return /^[A-Za-z0-9+/_-]+={0,2}$/.test(cleanStr);
 }
 
 /**
