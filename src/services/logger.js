@@ -112,7 +112,11 @@ export default class LoggerService {
       // 否则显示格式化的数据
       const dataString = JSON.stringify(data, null, 2);
       if (dataString !== '{}') {
-        details = `<tg-spoiler>${dataString}</tg-spoiler>`;
+        const MAX_LENGTH = 4096;
+        const truncatedData = dataString.length > MAX_LENGTH
+          ? dataString.substring(0, MAX_LENGTH) + '...' 
+          : dataString;
+        details = `<tg-spoiler>${truncatedData}</tg-spoiler>`;
       }
     }
     
