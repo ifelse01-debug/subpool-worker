@@ -10,7 +10,7 @@ export class SubconverterService {
    * @param {string} token - The group's token.
    * @returns {Promise<{content: string, headers: object}>}
    */
-  static async generateSubscription(group, request, token) {
+  static async generateSubscription(group, request, token, logger) {
     const url = new URL(request.url);
     const userAgent = (request.headers.get('User-Agent') || '').toLowerCase();
 
@@ -72,7 +72,7 @@ export class SubconverterService {
       return { content: subContent, headers };
 
     } catch (error) {
-      console.error('Sub-converter fetch failed:', error);
+      logger.error(error, { customMessage: 'Sub-converter fetch failed' });
       // 转换失败时，回退到返回原生 base64 节点
       const headers = this._createSubscriptionHeaders();
       return { content: safeBtoa(content), headers };

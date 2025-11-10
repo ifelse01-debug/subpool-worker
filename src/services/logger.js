@@ -145,9 +145,9 @@ export default class LoggerService {
         },
         ...data
       };
-      this._log('error', message.message, errorData);
+      this._log('error', message.message, errorData, options);
     } else {
-      this._log('error', message, data);
+      this._log('error', message, data, options);
     }
   }
   

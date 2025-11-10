@@ -33,7 +33,7 @@ export async function handleSubscriptionRequest(request, token, logger) {
   logger.info('Subscription accessed', { token, groupName: group.name, Score: score });
   
   try {
-    const { content, headers } = await SubconverterService.generateSubscription(group, request, token);
+    const { content, headers } = await SubconverterService.generateSubscription(group, request, token, logger);
     return new Response(content, { headers });
   } catch (err) {
     logger.error(err, { customMessage: 'Failed to generate subscription', token });
