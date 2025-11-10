@@ -17,4 +17,5 @@ head_sampling_rate = 1
 
 [vars]
 JWT_SECRET = "__JWT_SECRET__"
+DEBUG_SECRET = "__DEBUG_SECRET__"
 LOG_LEVEL = "info"

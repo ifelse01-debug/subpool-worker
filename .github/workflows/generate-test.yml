@@ -32,6 +32,10 @@ jobs:
             echo "::error::Secret JWT_SECRET is not set. Please add it to your repository secrets."
             exit 1
           fi
+          if [ -z "${{ secrets.DEBUG_SECRET }}" ]; then
+            echo "::error::Secret DEBUG_SECRET is not set. Please add it to your repository secrets."
+            exit 1
+          fi
           echo "✅ All necessary secrets are set."
 
       - name: Setup Node.js
@@ -67,6 +71,7 @@ jobs:
             -e "s/__KV_NAMESPACE_ID__/${{ secrets.CF_KV_NAMESPACE_ID }}/g" \
             -e "s/__ADMIN_PASSWORD__/${{ secrets.ADMIN_PASSWORD }}/g" \
             -e "s/__JWT_SECRET__/${{ secrets.JWT_SECRET }}/g" \
+            -e "s/__DEBUG_SECRET__/${{ secrets.DEBUG_SECRET }}/g" \
             wrangler.toml.example > wrangler.toml
           if [[ -n "${{ secrets.CUSTOM_DOMAIN }}" ]]; then
             echo "Setting custom domain to ${{ secrets.CUSTOM_DOMAIN }}"

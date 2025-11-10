@@ -30,7 +30,9 @@ export default class LoggerService {
     }
     
     // 检查请求头以确定是否需要覆盖日志级别
-    this.debugOverride = request.headers.get('X-Debug-Log') === 'true';
+    const debugHeaderValue = request.headers.get('X-Debug-Log');
+    const debugSecret = env.DEBUG_SECRET;
+    this.debugOverride = debugSecret && debugHeaderValue === debugSecret;
   }
 
   /**
