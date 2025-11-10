@@ -13,8 +13,8 @@ export async function handleRequest(request, env, ctx, logger) {
   const router = Router();
 
   // 管理后台路由
-  router.all('/admin*', () => handleAdminRequest(request, logger));
-  //router.all('/admin/*', () => handleAdminRequest(request, logger));
+  router.all('/admin', () => handleAdminRequest(request, logger));
+  router.all('/admin/*', () => handleAdminRequest(request, logger));
 
   // 提取 token (路径的第一部分)
   router.get('/:token', ({ params }) => handleSubscriptionRequest(request, params.token, logger));
