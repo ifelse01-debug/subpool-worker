@@ -208,7 +208,6 @@ export function createAuthCookie(token, maxAge, options = {}) {
   const {
     path = CONFIG.COOKIE_PATH,
     domain = '',
-    secure = true,
     sameSite = 'Strict'
   } = options;
   
@@ -216,8 +215,8 @@ export function createAuthCookie(token, maxAge, options = {}) {
     `${CONFIG.COOKIE_NAME}=${token}`,
     `Path=${path}`,
     `Max-Age=${maxAge}`,
-    'HttpOnly=true',
-    'Secure=' + (secure ? 'true' : 'false'),
+    'HttpOnly',
+    'Secure',
     'SameSite=' + sameSite,
     ...(domain ? [`Domain=${domain}`] : [])
   ].join('; ');
