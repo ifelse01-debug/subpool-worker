@@ -199,6 +199,7 @@ export function renderAdminPage() {
               case 'select-group': this.state.selectedGroupToken = e.target.dataset.token; this.state.isNewGroup = false; this.render(); break;
               case 'new-group': this.state.selectedGroupToken = null; this.state.isNewGroup = true; this.render(); break;
               case 'generate-token': const { token } = await this.api.generateToken(); document.getElementById('group-token').value = token; break;
+              case 'copy-url': await this.copyGroupUrl(); break;
               case 'save-group': await this.saveGroup(); break;
               case 'delete-group': if (await this.UI.confirm('确定要删除这个订阅组吗？此操作不可撤销。')) await this.deleteGroup(); break;
               case 'save-settings': await this.saveSettings(); break;
@@ -218,7 +219,6 @@ export function renderAdminPage() {
         const form = document.getElementById('group-form'); 
         const group = { 
           name: form.elements['group-name'].value, 
-          token: form.elements['group-token'].value, 
           allowChinaAccess: form.elements['allow-china'].checked, 
           nodes: form.elements['group-nodes'].value, 
           filter: { 
@@ -226,8 +226,14 @@ export function renderAdminPage() {
             rules: form.elements['filter-rules'].value.split('\\n').filter(Boolean) 
           } 
         }; 
-        if (!group.name || !group.token) { 
-          this.UI.showToast('组名和 Token 不能为空！', 'error');
+        
+        // 只有编辑现有组时才包含token
+        if (!this.state.isNewGroup) {
+          group.token = form.elements['group-token'].value;
+        }
+        
+        if (!group.name) { 
+          this.UI.showToast('组名不能为空！', 'error');
           return; 
         } 
         try { 
@@ -260,6 +266,19 @@ export function renderAdminPage() {
           console.error(err); 
           this.UI.showToast('删除失败', 'error'); 
         } 
+      },
+      async copyGroupUrl() {
+        const token = this.state.selectedGroupToken;
+        if (!token) return;
+        
+        const url = \`\${window.location.protocol}//\${window.location.host}/sub/\${token}\`;
+        try {
+          await navigator.clipboard.writeText(url);
+          this.UI.showToast('URL已复制到剪贴板！');
+        } catch (err) {
+          console.error('Failed to copy URL:', err);
+          this.UI.showToast('复制失败，请手动复制', 'error');
+        }
       },
       async saveSettings() { 
         const form = document.getElementById('settings-form'); 
@@ -330,36 +349,40 @@ export function renderAdminPage() {
                 <label for="group-name">组名</label> 
                 <input type="text" id="group-name" value="\${this.escapeHtml(group.name)}"> 
               </div> 
+              \${!this.state.isNewGroup ? \`
               <div class="form-group"> 
                 <label for="group-token">Token</label> 
                 <div class="token-group"> 
-                  <input type="text" id="group-token" value="\${this.escapeHtml(group.token)}" \${!this.state.isNewGroup ? 'readonly' : ''}> \${this.state.isNewGroup ? '<button class="btn btn-secondary" data-action="generate-token">随机</button>' : ''} </div> 
+                  <input type="text" id="group-token" value="\${this.escapeHtml(group.token)}" readonly> 
+                  <button type="button" class="btn btn-secondary" data-action="generate-token">随机</button>
+                  <button type="button" class="btn btn-secondary" data-action="copy-url">复制URL</button>
+                </div> 
+              </div>\` : ''} 
+              <div class="form-group"> 
+                <label for="group-nodes">订阅链接 / 节点 (每行一个)</label> 
+                <textarea id="group-nodes">\${this.escapeHtml(group.nodes || '')}</textarea> 
+              </div> 
+              <div class="form-group checkbox-group"> 
+                <input type="checkbox" id="allow-china" \${group.allowChinaAccess ? 'checked' : ''}> 
+                <label for="allow-china">允许中国大陆 IP 访问</label> 
+              </div> 
+              <fieldset> 
+                <legend>过滤器</legend> 
+                <div class="form-group checkbox-group"> 
+                  <input type="checkbox" id="filter-enabled" \${group.filter && group.filter.enabled ? 'checked' : ''}> 
+                  <label for="filter-enabled">启用节点过滤器</label> 
                 </div> 
                 <div class="form-group"> 
-                  <label for="group-nodes">订阅链接 / 节点 (每行一个)</label> 
-                  <textarea id="group-nodes">\${this.escapeHtml(group.nodes || '')}</textarea> 
+                  <label for="filter-rules">过滤规则 (每行一个正则表达式, e.g., /过期/i)</label> 
+                  <textarea id="filter-rules" placeholder="/剩余流量/i\\n/过期时间/i">\${this.escapeHtml((group.filter && group.filter.rules || []).join('\\n'))}</textarea> 
                 </div> 
-                <div class="form-group checkbox-group"> 
-                  <input type="checkbox" id="allow-china" \${group.allowChinaAccess ? 'checked' : ''}> 
-                  <label for="allow-china">允许中国大陆 IP 访问</label> 
-                </div> 
-                <fieldset> 
-                  <legend>过滤器</legend> 
-                  <div class="form-group checkbox-group"> 
-                    <input type="checkbox" id="filter-enabled" \${group.filter && group.filter.enabled ? 'checked' : ''}> 
-                    <label for="filter-enabled">启用节点过滤器</label> 
-                  </div> 
-                  <div class="form-group"> 
-                    <label for="filter-rules">过滤规则 (每行一个正则表达式, e.g., /过期/i)</label> 
-                    <textarea id="filter-rules" placeholder="/剩余流量/i\\n/过期时间/i">\${this.escapeHtml((group.filter && group.filter.rules || []).join('\\n'))}</textarea> 
-                  </div> 
-                </fieldset> 
-                <div class="actions"> 
-                  <button class="btn btn-primary" data-action="save-group">保存</button> \${!this.state.isNewGroup ? '<button class="btn btn-danger" data-action="delete-group">删除</button>' : ''} 
-                </div> 
-              </form> 
-            </div> 
-          \`; },
+              </fieldset> 
+              <div class="actions"> 
+                <button type="button" class="btn btn-primary" data-action="save-group">保存</button> \${!this.state.isNewGroup ? '<button type="button" class="btn btn-danger" data-action="delete-group">删除</button>' : ''} 
+              </div> 
+            </form> 
+          </div> 
+        \`; },
       renderSettingsView() { 
         const cfg = this.state.config; 
         return \` 
