@@ -95,13 +95,20 @@ async function handleApiRequest(request, url, logger) {
       return response.json({ error: 'Invalid group data' }, 400);
     }
 
-    const group = await KVService.getGroup(newGroup.name);
+    // 生成随机token
+    if (!newGroup.token) newGroup.token = crypto.randomUUID();
+    if (!newGroup.token || typeof newGroup.token !== 'string' || !newGroup.token.trim()) {
+      logger.warn('Invalid group data', { GroupData: newGroup });
+      return response.json({ error: 'Invalid group data' }, 400);
+    }
+
+    // 检查token是否已存在
+    const group = await KVService.getGroup(newGroup.token);
     if (group) {
       logger.warn('Group already exists', { GroupName: newGroup.name });
       return response.json({ error: 'Group already exists' }, 400);
     }
 
-    if (!newGroup.token) newGroup.token = crypto.randomUUID();
 		await KVService.saveGroup(newGroup);
 		logger.info(`Group created`, { GroupName: newGroup.name, Token: newGroup.token }, { notify: true });
 		return response.json(newGroup);
