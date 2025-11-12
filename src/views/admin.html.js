@@ -106,8 +106,16 @@ export function renderAdminPage() {
           cursor: pointer;
           padding: 8px;
       }
+      /* 移动端导航菜单 */
+      .mobile-nav {
+          display: none;
+      }
+
       /* 响应式设计 */
       @media (max-width: 768px) {
+          .mobile-nav {
+              display: block;
+          }
           .header {
               padding: 0 15px;
               height: 50px;
@@ -482,7 +490,7 @@ export function renderAdminPage() {
               <header class="header">
                   <div class="header-left">
                       <button class="mobile-menu-btn" data-action="toggle-sidebar">☰</button>
-                      <h1>订阅管理</h1>
+                      <h1>SubPool Worker</h1>
                       <nav class="nav">
                           <button data-action="navigate" data-view="subscriptions" class="\${this.state.currentView === 'subscriptions' ? 'active' : ''}">订阅管理</button>
                           <button data-action="navigate" data-view="settings" class="\${this.state.currentView === 'settings' ? 'active' : ''}">全局设置</button>
@@ -497,7 +505,27 @@ export function renderAdminPage() {
           \`;
           this.cache.modal.innerHTML = this.state.confirmPromise ? this.UI.renderConfirmModal() : '';
       },
-      renderSubscriptionsView() { return \` <aside class="sidebar"> <div class="sidebar-item new" data-action="new-group"> + 创建新订阅组 </div> \${this.state.groups.map(g => \`<div class="sidebar-item \${(this.state.selectedGroupToken === g.token && !this.state.isNewGroup) ? 'active' : ''}" data-action="select-group" data-token="\${this.escapeHtml(g.token)}"> \${this.escapeHtml(g.name)} </div>\`).join('')} </aside> <section class="content-area"> \${(this.state.selectedGroupToken || this.state.isNewGroup) ? this.renderGroupEditor() : '<div class="form-container"><p>请从左侧选择一个订阅组进行编辑，或创建一个新组。</p></div>'} </section> \`; },
+      renderSubscriptionsView() { 
+        return \` 
+          <aside class="sidebar"> 
+            <!-- 移动端导航菜单 -->
+            <div class="mobile-nav">
+              <div class="sidebar-item \${this.state.currentView === 'subscriptions' ? 'active' : ''}" data-action="navigate" data-view="subscriptions">
+                📋 订阅管理
+              </div>
+              <div class="sidebar-item \${this.state.currentView === 'settings' ? 'active' : ''}" data-action="navigate" data-view="settings">
+                ⚙️ 全局设置
+              </div>
+              <hr style="margin: 10px 0; border: none; border-top: 1px solid var(--border-color);">
+            </div>
+            <div class="sidebar-item new" data-action="new-group"> + 创建新订阅组 </div> 
+            \${this.state.groups.map(g => \`<div class="sidebar-item \${(this.state.selectedGroupToken === g.token && !this.state.isNewGroup) ? 'active' : ''}" data-action="select-group" data-token="\${this.escapeHtml(g.token)}"> \${this.escapeHtml(g.name)} </div>\`).join('')} 
+          </aside> 
+          <section class="content-area"> 
+            \${(this.state.selectedGroupToken || this.state.isNewGroup) ? this.renderGroupEditor() : '<div class="form-container"><p>请从左侧选择一个订阅组进行编辑，或创建一个新组。</p></div>'} 
+          </section> 
+        \`; 
+      },
       renderGroupEditor() { 
         const group = this.state.isNewGroup ? { name: '', token: '', allowChinaAccess: false, nodes: '', filter: { enabled: false, rules: [] } } : this.state.groups.find(g => g.token === this.state.selectedGroupToken); 
         if (!group) return '<div class="form-container"><p>无法找到该订阅组。</p></div>'; 
@@ -546,9 +574,30 @@ export function renderAdminPage() {
       renderSettingsView() { 
         const cfg = this.state.config; 
         return \` 
-          <div class="form-container" style="max-width: 1200px; padding: 20px;"> 
-            <form id="settings-form"> 
-              <h2 style="text-align: center; margin-bottom: 30px;">全局设置</h2> 
+          <aside class="sidebar"> 
+            <!-- 移动端导航菜单 -->
+            <div class="mobile-nav">
+              <div class="sidebar-item \${this.state.currentView === 'subscriptions' ? 'active' : ''}" data-action="navigate" data-view="subscriptions">
+                📋 订阅管理
+              </div>
+              <div class="sidebar-item \${this.state.currentView === 'settings' ? 'active' : ''}" data-action="navigate" data-view="settings">
+                ⚙️ 全局设置
+              </div>
+              <hr style="margin: 10px 0; border: none; border-top: 1px solid var(--border-color);">
+            </div>
+            <div class="sidebar-item active">全局设置</div>
+          </aside> 
+          <section class="content-area"> 
+            <!-- 设置表单内容保持不变 -->
+            \${this.renderSettingsForm(cfg)}
+          </section> 
+        \`; 
+      },
+      renderSettingsForm(cfg) {
+        return \`
+          <div class="form-container" style="max-width: 1200px; padding: 20px;">
+            <form id="settings-form">
+              <h2 style="text-align: center; margin-bottom: 30px;">全局设置</h2>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
                 <div class="settings-column">
                   <fieldset> 
@@ -618,7 +667,9 @@ export function renderAdminPage() {
                 <button class="btn btn-primary" data-action="save-settings">保存设置</button> 
               </div> 
             </form> 
-          </div> \`; }
+          </div>
+        \`;
+      }
     };
     document.addEventListener('DOMContentLoaded', () => App.init());
   `;
