@@ -1,4 +1,4 @@
-impo:t { ConfigService } from './config.js';
+import { ConfigService } from './config.js';
 import { applyFilter, isValidBase64, safeBtoa } from '../utils.js';
 
 export class SubconverterService {
