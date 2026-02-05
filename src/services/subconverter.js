@@ -1,4 +1,4 @@
-import { ConfigService } from './config.js';
+impo:t { ConfigService } from './config.js';
 import { applyFilter, isValidBase64, safeBtoa } from '../utils.js';
 
 export class SubconverterService {
@@ -61,7 +61,7 @@ export class SubconverterService {
     
     try {
       const response = await fetch(subconverterUrl);
-      if (!response.ok) throw new Error(`Sub-converter API error: ${response.status}`);
+      if (!response.ok) throw new Error(`Sub-converter API(${subconverterUrl}) error: ${response.status}`);
       
       let subContent = await response.text();
       if (outputFormat === 'clash') {
@@ -108,7 +108,7 @@ export class SubconverterService {
         });
 
         if (!resp.ok) {
-          throw new Error(`Fetch failed: ${resp.status}`);
+          throw new Error(`Fetch url(${urlStr}) failed: ${resp.status}`);
         }
 
         // 使用 await 等待读取文本内容
